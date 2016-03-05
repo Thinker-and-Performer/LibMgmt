@@ -32,11 +32,11 @@ Prerequisite
  * MySQL 5.x
  * Tomcat 8.0 + / Jetty 8 +
 
-Member
-======
- * Jack Q
- * AbrahamX
- * HanU-U
+Team Member
+===========
+ * Jack Q (乔波, 软件44, 2141601066)
+ * AbrahamX (寻医农, 软件44, 2141601070)
+ * HanU-U (武晗, 软件44, 2141601058)
 
 Screenshots
 ===========

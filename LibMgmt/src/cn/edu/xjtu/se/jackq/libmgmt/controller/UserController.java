@@ -31,6 +31,7 @@ public class UserController {
 
     @RequestMapping(value = {"", "index"})
     public String index(Model model, HttpSession session) {
+        logger.info("Requesting User.Index");
         SessionUser sessionUser = (SessionUser) session.getAttribute("Auth");
         User currentUser = userService.getUser(sessionUser.getId());
         model.addAttribute("User", currentUser);
@@ -43,6 +44,7 @@ public class UserController {
     @RequestMapping(value = "manage")
     @Auth(userRoles = {UserRole.ADMIN, UserRole.LIBRARIAN})
     public String manage(Model model) {
+        logger.info("Requesting User.Manage");
         model.addAttribute("ReaderList", userService.listReader());
         return "user/manage";
     }
@@ -53,7 +55,7 @@ public class UserController {
     @RequestMapping(value = "admin")
     @Auth(userRoles = UserRole.ADMIN)
     public String admin(Model model) {
-
+        logger.info("Requesting User.Admin");
         model.addAttribute("LibrarianList", userService.listLibrarian());
         return "user/admin";
     }
@@ -61,6 +63,7 @@ public class UserController {
     @Auth(allowAnonymous = true)
     @RequestMapping(value = "login", method = RequestMethod.GET)
     public String login(@ModelAttribute("UserLogin") UserLogin userLogin, @ModelAttribute("returnTo") String returnToUrlPara) {
+        logger.info("Requesting User.Login (GET)");
         // String returnToUrl = decodeRedirectUrlPara(returnToUrlPara);
         return "user/login";
     }
@@ -73,6 +76,7 @@ public class UserController {
                           HttpSession session,
                           HttpServletRequest request,
                           Model model) {
+        logger.info("Requesting User.Login (POST)");
         String returnToUrl = decodeRedirectUrlPara(returnToUrlPara, request.getContextPath());
         SessionUser sessionUser = (SessionUser) session.getAttribute("Auth");
         if (sessionUser == null) {
@@ -80,13 +84,18 @@ public class UserController {
             session.setAttribute("Auth", sessionUser);
         }
         if (sessionUser.isAuthorized()) {
+            logger.warn("Logout current user for login new user");
+            logger.warn(" |- Current user: " + sessionUser.getUserName());
+            logger.warn(" |- New user: " + userLogin.getUserName());
             userService.doLogout(sessionUser);
         }
         boolean loginResult = userService.doLogin(userLogin.getUserName(), userLogin.getPassword(), sessionUser);
         if (loginResult) {
+            logger.info("Login successful for user: " + userLogin.getUserName());
             redirectAttributes.addFlashAttribute("indexMessageId", "user.login.success");
             return "redirect:" + returnToUrl;
         }
+        logger.info("Login failed for user: " + userLogin.getUserName());
         model.addAttribute("errorMessageId", "user.login.error");
         return "user/login";
     }
@@ -94,10 +103,14 @@ public class UserController {
     @Auth(allowAnonymous = true) // Set it allow anonymous to prevent infinite loop in login and logout
     @RequestMapping("logout")
     public String logout(HttpSession session, RedirectAttributes redirectAttributes) {
+        logger.info("Requesting User.logout");
         SessionUser sessionUser = (SessionUser) session.getAttribute("Auth");
         if (sessionUser != null && sessionUser.isAuthorized()) {
+            logger.info("Logout successful for user: " + sessionUser.getUserName());
             userService.doLogout(sessionUser);
             redirectAttributes.addFlashAttribute("indexMessageId", "user.logout.success");
+        } else {
+            logger.warn("Logout requested while no user is logged in.");
         }
         return "redirect:/";
     }
@@ -106,10 +119,22 @@ public class UserController {
     @RequestMapping(value = "register", method = RequestMethod.GET)
     public String register(@ModelAttribute("UserRegister") UserRegister userRegister,
                            @ModelAttribute("returnTo") String returnToUrlPara) {
+        logger.info("Requesting User.Register (GET)");
         // String returnToUrl = decodeRedirectUrlPara(returnToUrlPara);
         return "user/register";
     }
 
+    /**
+     * Register new user
+     *
+     * @param userRegister       View model for register page
+     * @param returnToUrlPara    Base64 encoded URL where user will be redirected to after register
+     * @param model              Spring Model object to pass attributes to JSP
+     * @param session            Current HTTP session
+     * @param request            Current HTTP request
+     * @param redirectAttributes Spring RedirectAttributes object used to pass variable to another page
+     * @return JSP view or redirect directive
+     */
     @Auth(allowAnonymous = true)
     @RequestMapping(value = "register", method = RequestMethod.POST)
     public String doRegister(@ModelAttribute("UserRegister") UserRegister userRegister,
@@ -118,7 +143,9 @@ public class UserController {
                              HttpSession session,
                              HttpServletRequest request,
                              RedirectAttributes redirectAttributes) {
-
+        logger.info("Requesting User.Register (POST)");
+        // Decode Base64 encoded redirect URL and check whether the URL is pointing to
+        // a page in this site
         String returnToUrl = decodeRedirectUrlPara(returnToUrlPara, request.getContextPath());
 
         // Validate Data
@@ -157,22 +184,22 @@ public class UserController {
         user.setDateOfBirth(userRegister.getDateOfBirth());
         userService.updateUser(user);
 
-        // Login user
+        // Get session data
         SessionUser sessionUser = (SessionUser) session.getAttribute("Auth");
         if (sessionUser == null) {
             sessionUser = new SessionUser();
             session.setAttribute("Auth", sessionUser);
         }
 
-
+        // Login user
         boolean loginResult = userService.doLogin(username, password, sessionUser);
         if (!loginResult) {
-
+            logger.info("New registered successfully (POST)");
             model.addAttribute("errorMessageId", "user.register.error.create");
             return "user/register";
         }
 
-        // Redirect to index
+        // Redirect to index page or a page set by ReturnUrl HTTP parameter
         redirectAttributes.addFlashAttribute("indexMessageId", "user.register.success");
         return "redirect:" + returnToUrl;
     }
@@ -180,6 +207,7 @@ public class UserController {
 
     @RequestMapping(value = "changePassword", method = RequestMethod.GET)
     public String changePassword(@ModelAttribute("UserChangePassword") UserChangePassword userChangePassword) {
+        logger.info("Requesting User.ChangePassword (GET)");
         return "user/changePassword";
     }
 

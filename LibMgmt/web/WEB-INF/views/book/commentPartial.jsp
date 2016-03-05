@@ -9,7 +9,7 @@
         <c:when test="${BookComments != null && BookComments.size() > 0}">
 
             <c:forEach var="Comment" items="${BookComments}">
-                <div class="comment well-lg row comment-item">
+                <div class="comment well-lg row comment-item" data-id="${Comment.id}">
                     <div class="col-xs-2 col-md-1 comment-rate">
                         <div class="comment-star">
                             <i class="material-icons">&#xE885;</i>
@@ -27,12 +27,32 @@
                         </layout:login>
                     </div>
                     <div class="col-xs-10 col-md-11 comment-main">
+                        <div class="comment-action text-right">
 
+                            <c:choose>
+                                <c:when test="${Comment.user.id == sessionScope.Auth.id}">
+                                    <button class="delete-comment btn btn-xs btn-danger" data-id="${Comment.id}">
+                                        Delete My Comment
+                                    </button>
+                                </c:when>
+                                <c:when test="${sessionScope.Auth.admin || sessionScope.Auth.librarian}">
+                                    <button class="delete-comment btn btn-xs btn-warning" data-id="${Comment.id}">
+                                        Delete This Comment
+                                    </button>
+                                </c:when>
+                            </c:choose>
+                        </div>
                         <div class="comment-content">
                             <c:out value="${Comment.content}"/>
                         </div>
                         <div class="comment-meta">
-                            By <c:out value="${Comment.user.name}"/> @ <fmt:formatDate
+                            <c:if test="${!Comment.anonymous}">
+                                By <c:out value="${Comment.user.name}"/>
+                            </c:if>
+                            <c:if test="${Comment.anonymous && Comment.user.id == sessionScope.Auth.id}">
+                                <span>Your Anonymous Comment</span>
+                            </c:if>
+                            @ <fmt:formatDate
                                 value="${Comment.dateOfComment}" pattern="yyyy-MM-dd hh:mm:ss"/>
                         </div>
                     </div>
@@ -56,9 +76,20 @@
                             <textarea name="content" placeholder="Say something?" class="form-control"></textarea>
                         </label>
                     </div>
-                    <input class="btn btn-raised btn-primary" type="submit" value="Submit">
-                    <input class="btn btn-raised btn-default" type="reset" value="Clear">
-                    <span class="text-info">(You are logged in as <c:out value="${sessionScope.Auth.userName}"/>)</span>
+                    <div class="togglebutton">
+                        <label>
+                            <input type="checkbox" name="anonymous"> Anonymous Comment
+                        </label>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <input class="btn btn-raised btn-primary" type="submit" value="Submit">
+                            <input class="btn btn-raised btn-default" type="reset" value="Clear">
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-info">(You are logged in as <c:out value="${sessionScope.Auth.userName}"/>)</span>
+                        </div>
+                    </div>
                 </form>
             </div>
         </jsp:attribute>
@@ -93,7 +124,27 @@
                         }
                     })
 
-                })
+                });
+                $(".delete-comment").click(function (e) {
+                    e.preventDefault();
+                    var id = this.dataset.id;
+                    var that = this;
+                    var $that = $(that);
+                    that.disabled = true;
+                    $that.text("deleting");
+                    $.post("<spring:url value="/book/deleteComment" />", {
+                        id: id
+                    }, function (res) {
+                        if (res && res.success) {
+                            $(".comment-item[data-id=" + id + "]").empty().append($(
+                                    "<div class='comment-deleted'>This comment has been deleted</div>"
+                            ));
+                        } else {
+                            that.disabled = false;
+                            $that.text("Delete failed, click to retry");
+                        }
+                    })
+                });
             });
         </script>
         </jsp:attribute>

@@ -8,6 +8,7 @@ import cn.edu.xjtu.se.jackq.libmgmt.service.UserService;
 import cn.edu.xjtu.se.jackq.libmgmt.session.SessionUser;
 import cn.edu.xjtu.se.jackq.libmgmt.viewmodel.BookAdd;
 import cn.edu.xjtu.se.jackq.libmgmt.viewmodel.BookEdit;
+import cn.edu.xjtu.se.jackq.libmgmt.viewmodel.PageList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -39,8 +40,9 @@ public class BookController {
     @Auth(userRoles = {UserRole.ADMIN, UserRole.LIBRARIAN})
     @RequestMapping("manage/{page}")
     public String manage(@PathVariable(value = "page") int page, Model model) {
-        List<Book> bookList = bookService.listBook();
-        model.addAttribute("BookList", bookList);
+
+        PageList<Book> bookPageList = bookService.listBookByPage(page);
+        model.addAttribute("BookPageList", bookPageList);
         return "book/manage";
     }
 
@@ -75,13 +77,14 @@ public class BookController {
     @RequestMapping(value = "comment/{BookId}", method = RequestMethod.POST)
     public String doComment(@PathVariable("BookId") int bookId,
                             @RequestParam("content") String content,
+                            @RequestParam(value = "anonymous", required = false, defaultValue = "false") boolean isAnonymous,
                             HttpSession session,
                             RedirectAttributes redirectAttributes) {
         SessionUser sessionUser = (SessionUser) session.getAttribute("Auth");
         User user = userService.getUser(sessionUser.getId());
         Book book = bookService.getBook(bookId);
         if (user != null && book != null) {
-            bookService.commentBook(book, user, content);
+            bookService.commentBook(book, user, content, isAnonymous);
             redirectAttributes.addFlashAttribute("indexMessageId", "book.comment.success");
         } else {
             redirectAttributes.addFlashAttribute("indexMessageId", "book.comment.failed");
@@ -102,6 +105,26 @@ public class BookController {
             case "down":
                 result = bookService.rateComment(commentId, -1);
                 break;
+        }
+        return result ?
+                "{\"success\":true}" : "{\"success\":false}";
+    }
+
+
+    @Auth
+    @ResponseBody
+    @RequestMapping(value = "deleteComment", method = RequestMethod.POST, produces = "application/json; charset=utf-8")
+    public String doDeleteComment(@RequestParam("id") int commentId, HttpSession httpSession) {
+        boolean result = true;
+        SessionUser sessionUser = (SessionUser) httpSession.getAttribute("Auth");
+        BookComment bookComment = bookService.getBookComment(commentId);
+        if (bookComment == null) {
+            result = false;
+        }
+        if (result && (sessionUser.isAdmin() || sessionUser.isLibrarian() || sessionUser.getId() == bookComment.getUser().getId())) {
+            result = bookService.deleteComment(commentId);
+        } else {
+            result = false;
         }
         return result ?
                 "{\"success\":true}" : "{\"success\":false}";

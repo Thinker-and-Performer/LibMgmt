@@ -1,10 +1,8 @@
 package cn.edu.xjtu.se.jackq.libmgmt.service;
 
 
-import cn.edu.xjtu.se.jackq.libmgmt.entity.Book;
-import cn.edu.xjtu.se.jackq.libmgmt.entity.BookCopy;
-import cn.edu.xjtu.se.jackq.libmgmt.entity.BookLoan;
-import cn.edu.xjtu.se.jackq.libmgmt.entity.User;
+import cn.edu.xjtu.se.jackq.libmgmt.entity.*;
+import cn.edu.xjtu.se.jackq.libmgmt.viewmodel.PageList;
 
 import java.util.List;
 
@@ -50,9 +48,18 @@ public interface BookService {
 
     void commentBook(Book book, User user, String content);
 
+    void commentBook(Book book, User user, String content, boolean isAnonymous);
+
     boolean rateComment(int commentId, int rateChange);
 
     boolean isBookCodeAvailable(String bookCode);
 
     boolean deleteBookCopy(BookCopy bookCopy);
+
+    PageList<Book> listBookByPage(int page);
+
+    BookComment getBookComment(int commentId);
+
+
+    boolean deleteComment(int commentId);
 }

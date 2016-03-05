@@ -4,6 +4,7 @@ package cn.edu.xjtu.se.jackq.libmgmt.service;
 import cn.edu.xjtu.se.jackq.libmgmt.dao.BookDao;
 import cn.edu.xjtu.se.jackq.libmgmt.dao.BookLoanDao;
 import cn.edu.xjtu.se.jackq.libmgmt.entity.*;
+import cn.edu.xjtu.se.jackq.libmgmt.viewmodel.PageList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -231,11 +232,17 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public void commentBook(Book book, User user, String content) {
+        commentBook(book, user, content, false);
+    }
+
+    @Override
+    public void commentBook(Book book, User user, String content, boolean isAnonymous) {
 
         BookComment bookComment = new BookComment();
         bookComment.setBook(book);
         bookComment.setUser(user);
         bookComment.setContent(content);
+        bookComment.setAnonymous(isAnonymous);
         bookComment.setDateOfComment(new Date());
         bookDao.addComment(bookComment);
     }
@@ -261,6 +268,22 @@ public class BookServiceImpl implements BookService {
 
         bookDao.updateBookCopy(bookCopy);
         return true;
+    }
+
+    @Override
+    public PageList<Book> listBookByPage(int page) {
+        int itemsPerPage = 15;
+        return bookDao.listBook(itemsPerPage, page);
+    }
+
+    @Override
+    public BookComment getBookComment(int commentId) {
+        return bookDao.getComment(commentId);
+    }
+
+    @Override
+    public boolean deleteComment(int commentId) {
+        return bookDao.deleteComment(commentId);
     }
 
     @Override
